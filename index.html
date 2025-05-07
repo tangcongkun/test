@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小红书风格列表</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 10px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+            padding: 0 10px;
+        }
+
+        .column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 100%;
+        }
+
+        .media-container {
+            position: relative;
+            width: 100%;
+            padding-top: 100%;
+        }
+
+        .media-container img,
+        .media-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .content {
+            padding: 12px;
+        }
+
+        .title {
+            font-size: 14px;
+            line-height: 1.4;
+            color: #333;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .tags {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .tag {
+            font-size: 12px;
+            color: #666;
+            background-color: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .username {
+            font-size: 12px;
+            color: #666;
+            flex: 1;
+        }
+
+        .like-info {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .like-icon {
+            width: 16px;
+            height: 16px;
+            color: #999;
+            transition: all 0.2s ease;
+        }
+
+        .like-icon.active {
+            color: #ff2442;
+            animation: likeAnimation 0.3s ease;
+        }
+
+        @keyframes likeAnimation {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .like-count {
+            font-size: 12px;
+            color: #666;
+            transition: color 0.2s ease;
+        }
+
+        .like-count.active {
+            color: #ff2442;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+
+        .pull-to-refresh {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            display: none;
+        }
+
+        @media screen and (max-width: 768px) {
+            .container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+                padding: 0 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pull-to-refresh">下拉刷新</div>
+    <div class="container">
+        <div class="column" id="column1"></div>
+        <div class="column" id="column2"></div>
+    </div>
+    <div class="loading">加载中...</div>
+
+    <script>
+        // 模拟数据
+        const mockData = {
+            "1": {
+                items: [
+                    {
+                        id: 1,
+                        title: "超实用的居家收纳技巧，让家焕然一新！这个收纳方法真的太实用了，分享给大家。",
+                        media: "https://picsum.photos/400/600",
+                        type: "image",
+                        username: "收纳达人",
+                        avatar: "https://picsum.photos/50/50",
+                        likes: 1234,
+                        tag: "居家"
+                    },
+                    {
+                        id: 2,
+                        title: "超治愈的猫咪视频",
+                        media: "https://assets.mixkit.co/videos/preview/mixkit-cat-playing-with-a-ball-of-yarn-4154-large.mp4",
+                        type: "video",
+                        username: "萌宠日记",
+                        avatar: "https://picsum.photos/51/51",
+                        likes: 2345,
+                        tag: "萌宠"
+                    },
+                    {
+                        id: 3,
+                        title: "分享一个超级好吃的蛋糕配方，新手也能轻松上手，这个配方我已经用了很多年了，每次做出来都特别受欢迎！",
+                        media: "https://picsum.photos/400/300",
+                        type: "image",
+                        username: "烘焙小能手",
+                        avatar: "https://picsum.photos/52/52",
+                        likes: 3456,
+                        tag: "美食"
+                    },
+                    {
+                        id: 4,
+                        title: "超简单的瑜伽动作",
+                        media: "https://assets.mixkit.co/videos/preview/mixkit-woman-doing-yoga-in-the-park-4155-large.mp4",
+                        type: "video",
+                        username: "瑜伽教练",
+                        avatar: "https://picsum.photos/53/53",
+                        likes: 4567,
+                        tag: "运动"
+                    },
+                    {
+                        id: 5,
+                        title: "这个夏天最火的穿搭，让你秒变时尚达人！这些搭配技巧你一定要学会，真的太实用了！",
+                        media: "https://picsum.photos/400/800",
+                        type: "image",
+                        username: "时尚博主",
+                        avatar: "https://picsum.photos/54/54",
+                        likes: 5678,
+                        tag: "时尚"
+                    },
+                    {
+                        id: 6,
+                        title: "超实用的化妆技巧",
+                        media: "https://assets.mixkit.co/videos/preview/mixkit-woman-applying-makeup-4156-large.mp4",
+                        type: "video",
+                        username: "美妆达人",
+                        avatar: "https://picsum.photos/55/55",
+                        likes: 6789,
+                        tag: "美妆"
+                    },
+                    {
+                        id: 7,
+                        title: "分享一个超级好吃的家常菜做法",
+                        media: "https://picsum.photos/400/400",
+                        type: "image",
+                        username: "美食家",
+                        avatar: "https://picsum.photos/56/56",
+                        likes: 7890,
+                        tag: "美食"
+                    },
+                    {
+                        id: 8,
+                        title: "超实用的旅行攻略，让你的旅行更加完美！这些地方你一定要去，真的太美了！",
+                        media: "https://picsum.photos/400/700",
+                        type: "image",
+                        username: "旅行达人",
+                        avatar: "https://picsum.photos/57/57",
+                        likes: 8901,
+                        tag: "旅行"
+                    }
+                ]
+            },
+            "2": {
+                items: [
+                    {
+                        id: 1,
+                        title: "超实用的居家收纳技巧，让家焕然一新！这个收纳方法真的太实用了，分享给大家。",
+                        media: "https://picsum.photos/400/650",
+                        type: "image",
+                        username: "收纳达人",
+                        avatar: "https://picsum.photos/58/58",
+                        likes: 1234,
+                        tag: "居家"
+                    },
+                    {
+                        id: 2,
+                        title: "超治愈的猫咪视频",
+                        media: "https://assets.mixkit.co/videos/preview/mixkit-cat-playing-with-a-ball-of-yarn-4161-large.mp4",
+                        type: "video",
+                        username: "萌宠日记",
+                        avatar: "https://picsum.photos/59/59",
+                        likes: 2345,
+                        tag: "萌宠"
+                    },
+                    {
+                        id: 3,
+                        title: "分享一个超级好吃的蛋糕配方，新手也能轻松上手，这个配方我已经用了很多年了，每次做出来都特别受欢迎！",
+                        media: "https://picsum.photos/400/500",
+                        type: "image",
+                        username: "烘焙小能手",
+                        avatar: "https://picsum.photos/60/60",
+                        likes: 3456,
+                        tag: "美食"
+                    },
+                    {
+                        id: 4,
+                        title: "超简单的瑜伽动作",
+                        media: "https://assets.mixkit.co/videos/preview/mixkit-woman-doing-yoga-in-the-park-4158-large.mp4",
+                        type: "video",
+                        username: "瑜伽教练",
+                        avatar: "https://picsum.photos/61/61",
+                        likes: 4567,
+                        tag: "运动"
+                    },
+                    {
+                        id: 5,
+                        title: "这个夏天最火的穿搭，让你秒变时尚达人！这些搭配技巧你一定要学会，真的太实用了！",
+                        media: "https://picsum.photos/400/900",
+                        type: "image",
+                        username: "时尚博主",
+                        avatar: "https://picsum.photos/62/62",
+                        likes: 5678,
+                        tag: "时尚"
+                    },
+                    {
+                        id: 6,
+                        title: "超实用的化妆技巧，新手也能画出完美妆容！这些技巧你一定要学会，真的太实用了！",
+                        media: "https://assets.mixkit.co/videos/preview/mixkit-woman-applying-makeup-4159-large.mp4",
+                        type: "video",
+                        username: "美妆达人",
+                        avatar: "https://picsum.photos/63/63",
+                        likes: 6789,
+                        tag: "美妆"
+                    },
+                    {
+                        id: 7,
+                        title: "分享一个超级好吃的家常菜做法",
+                        media: "https://picsum.photos/400/450",
+                        type: "image",
+                        username: "美食家",
+                        avatar: "https://picsum.photos/64/64",
+                        likes: 7890,
+                        tag: "美食"
+                    },
+                    {
+                        id: 8,
+                        title: "超实用的旅行攻略，让你的旅行更加完美！这些地方你一定要去，真的太美了！",
+                        media: "https://assets.mixkit.co/videos/preview/mixkit-traveling-through-a-beautiful-landscape-4160-large.mp4",
+                        type: "video",
+                        username: "旅行达人",
+                        avatar: "https://picsum.photos/65/65",
+                        likes: 8901,
+                        tag: "旅行"
+                    }
+                ]
+            },
+            "3": {
+                items: [
+                    {
+                        id: 1,
+                        title: "超实用的居家收纳技巧，让家焕然一新！这个收纳方法真的太实用了，分享给大家。",
+                        media: "https://picsum.photos/400/550",
+                        type: "image",
+                        username: "收纳达人",
+                        avatar: "https://picsum.photos/66/66",
+                        likes: 1234,
+                        tag: "居家"
+                    },
+                    {
+                        id: 2,
+                        title: "超治愈的猫咪视频",
+                        media: "https://assets.mixkit.co/videos/preview/mixkit-cat-playing-with-a-ball-of-yarn-4162-large.mp4",
+                        type: "video",
+                        username: "萌宠日记",
+                        avatar: "https://picsum.photos/67/67",
+                        likes: 2345,
+                        tag: "萌宠"
+                    },
+                    {
+                        id: 3,
+                        title: "分享一个超级好吃的蛋糕配方，新手也能轻松上手，这个配方我已经用了很多年了，每次做出来都特别受欢迎！",
+                        media: "https://picsum.photos/400/350",
+                        type: "image",
+                        username: "烘焙小能手",
+                        avatar: "https://picsum.photos/68/68",
+                        likes: 3456,
+                        tag: "美食"
+                    },
+                    {
+                        id: 4,
+                        title: "超简单的瑜伽动作",
+                        media: "https://assets.mixkit.co/videos/preview/mixkit-woman-doing-yoga-in-the-park-4163-large.mp4",
+                        type: "video",
+                        username: "瑜伽教练",
+                        avatar: "https://picsum.photos/69/69",
+                        likes: 4567,
+                        tag: "运动"
+                    },
+                    {
+                        id: 5,
+                        title: "这个夏天最火的穿搭，让你秒变时尚达人！这些搭配技巧你一定要学会，真的太实用了！",
+                        media: "https://picsum.photos/400/750",
+                        type: "image",
+                        username: "时尚博主",
+                        avatar: "https://picsum.photos/70/70",
+                        likes: 5678,
+                        tag: "时尚"
+                    },
+                    {
+                        id: 6,
+                        title: "超实用的化妆技巧",
+                        media: "https://assets.mixkit.co/videos/preview/mixkit-woman-applying-makeup-4164-large.mp4",
+                        type: "video",
+                        username: "美妆达人",
+                        avatar: "https://picsum.photos/71/71",
+                        likes: 6789,
+                        tag: "美妆"
+                    },
+                    {
+                        id: 7,
+                        title: "分享一个超级好吃的家常菜做法",
+                        media: "https://picsum.photos/400/480",
+                        type: "image",
+                        username: "美食家",
+                        avatar: "https://picsum.photos/72/72",
+                        likes: 7890,
+                        tag: "美食"
+                    },
+                    {
+                        id: 8,
+                        title: "超实用的旅行攻略，让你的旅行更加完美！这些地方你一定要去，真的太美了！",
+                        media: "https://picsum.photos/400/680",
+                        type: "image",
+                        username: "旅行达人",
+                        avatar: "https://picsum.photos/73/73",
+                        likes: 8901,
+                        tag: "旅行"
+                    }
+                ]
+            }
+        };
+
+        let currentPage = 1;
+        let isLoading = false;
+        let startY = 0;
+        let currentId = '1'; // 默认显示id为1的数据
+
+        // 获取URL参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        if (id && mockData[id]) {
+            currentId = id;
+        }
+
+        // 创建卡片元素
+        function createCard(item) {
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const mediaContainer = document.createElement('div');
+            mediaContainer.className = 'media-container';
+
+            if (item.type === 'video') {
+                const video = document.createElement('video');
+                video.src = item.media;
+                video.controls = true;
+                video.loop = true;
+                video.preload = 'metadata';
+                mediaContainer.appendChild(video);
+            } else {
+                const img = document.createElement('img');
+                img.src = item.media;
+                img.loading = 'lazy';
+                mediaContainer.appendChild(img);
+            }
+
+            const content = document.createElement('div');
+            content.className = 'content';
+
+            const title = document.createElement('div');
+            title.className = 'title';
+            title.textContent = item.title;
+
+            // 添加标签
+            const tags = document.createElement('div');
+            tags.className = 'tags';
+            if (item.tag) {
+                const tagElement = document.createElement('span');
+                tagElement.className = 'tag';
+                tagElement.textContent = item.tag;
+                tags.appendChild(tagElement);
+            }
+
+            const userInfo = document.createElement('div');
+            userInfo.className = 'user-info';
+
+            const avatar = document.createElement('img');
+            avatar.className = 'avatar';
+            avatar.src = item.avatar;
+            avatar.loading = 'lazy';
+
+            const username = document.createElement('span');
+            username.className = 'username';
+            username.textContent = item.username;
+
+            const likeInfo = document.createElement('div');
+            likeInfo.className = 'like-info';
+            likeInfo.dataset.liked = 'false';
+            likeInfo.dataset.likes = item.likes || 0;
+
+            const likeIcon = document.createElement('svg');
+            likeIcon.className = 'like-icon';
+            likeIcon.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+            `;
+
+            const likeCount = document.createElement('span');
+            likeCount.className = 'like-count';
+            likeCount.textContent = formatLikeCount(item.likes || 0);
+
+            likeInfo.appendChild(likeIcon);
+            likeInfo.appendChild(likeCount);
+
+            // 添加点赞点击事件
+            likeInfo.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isLiked = this.dataset.liked === 'true';
+                let likes = parseInt(this.dataset.likes);
+                
+                if (isLiked) {
+                    // 取消点赞
+                    likes--;
+                    this.dataset.liked = 'false';
+                    likeIcon.classList.remove('active');
+                    likeCount.classList.remove('active');
+                } else {
+                    // 点赞
+                    likes++;
+                    this.dataset.liked = 'true';
+                    likeIcon.classList.add('active');
+                    likeCount.classList.add('active');
+                }
+                
+                this.dataset.likes = likes;
+                likeCount.textContent = formatLikeCount(likes);
+            });
+
+            userInfo.appendChild(avatar);
+            userInfo.appendChild(username);
+            userInfo.appendChild(likeInfo);
+
+            content.appendChild(title);
+            content.appendChild(tags);
+            content.appendChild(userInfo);
+
+            card.appendChild(mediaContainer);
+            card.appendChild(content);
+
+            return card;
+        }
+
+        // 格式化点赞数
+        function formatLikeCount(count) {
+            if (count >= 10000) {
+                return (count / 10000).toFixed(1) + 'w';
+            } else if (count >= 1000) {
+                return (count / 1000).toFixed(1) + 'k';
+            }
+            return count.toString();
+        }
+
+        // 加载数据
+        async function loadData() {
+            if (isLoading) return;
+            isLoading = true;
+
+            const loading = document.querySelector('.loading');
+            loading.style.display = 'block';
+
+            // 模拟API请求
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const data = mockData[currentId].items;
+            const column1 = document.getElementById('column1');
+            const column2 = document.getElementById('column2');
+
+            // 创建所有卡片
+            const cards = data.map(item => createCard(item));
+
+            // 按顺序分配到两列
+            cards.forEach((card, index) => {
+                if (index % 2 === 0) {
+                    column1.appendChild(card);
+                } else {
+                    column2.appendChild(card);
+                }
+            });
+
+            loading.style.display = 'none';
+            isLoading = false;
+            currentPage++;
+        }
+
+        // 初始化
+        loadData();
+
+        // 上拉加载
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+                loadData();
+            }
+        });
+
+        // 下拉刷新
+        document.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].pageY;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            const currentY = e.touches[0].pageY;
+            const pullToRefresh = document.querySelector('.pull-to-refresh');
+            
+            if (window.scrollY === 0 && currentY - startY > 50) {
+                pullToRefresh.style.display = 'block';
+            } else {
+                pullToRefresh.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('touchend', (e) => {
+            const currentY = e.changedTouches[0].pageY;
+            if (window.scrollY === 0 && currentY - startY > 50) {
+                location.reload();
+            }
+        });
+
+        // 添加窗口大小变化监听
+        window.addEventListener('resize', () => {
+            const column1 = document.getElementById('column1');
+            const column2 = document.getElementById('column2');
+            
+            // 重新计算列宽
+            const containerWidth = document.querySelector('.container').offsetWidth;
+            const columnWidth = (containerWidth - 10) / 2; // 减去间距
+            
+            column1.style.width = `${columnWidth}px`;
+            column2.style.width = `${columnWidth}px`;
+        });
+    </script>
+</body>
+</html> 
